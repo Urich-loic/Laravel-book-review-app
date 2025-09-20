@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Book;
 use Illuminate\Contracts\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class BookController extends Controller
 {
@@ -31,7 +32,8 @@ class BookController extends Controller
             default =>  Book::latest()->paginate(5)
         };
 
-
+        $cacheKey = 'book:' . $title . ':' . $filter;
+        cache()->remember($cacheKey, 3600, fn() => $books);
 
         return view('books.index', compact('books'));
     }
@@ -57,7 +59,9 @@ class BookController extends Controller
      */
     public function show(Book $book)
     {
-        return view('books.show', compact('book'));
+        $cachedKey = 'book:' . $book->id;
+        $book = cache()->remember($cachedKey, 3600, fn() => $book->load(['reviews' => fn($q) => $q->latest()]));
+        return view('books.show', ['book' => $book ]);
     }
 
     /**

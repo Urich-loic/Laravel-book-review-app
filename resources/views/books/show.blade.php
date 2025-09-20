@@ -37,5 +37,6 @@
         </li>
       @endforelse
     </ul>
+
   </div>
 @endsection
