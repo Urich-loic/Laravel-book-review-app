@@ -32,8 +32,8 @@ class BookController extends Controller
             default =>  $books->latest()->withPopular()->withHighestRated()->paginate(5)
         };
 
-        // $cacheKey = 'book:' . $title . ':' . $filter;
-        // cache()->remember($cacheKey, 3600, fn() => $books);
+        $cacheKey = 'book:' . $title . ':' . $filter;
+        cache()->remember($cacheKey, 3600, fn() => $books);
 
         return view('books.index', compact('books'));
     }

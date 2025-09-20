@@ -34,7 +34,7 @@ class Book extends Model
         return $query;
     }
 
-    public function Title(Builder $query, string $title): Builder | QueryBuilder
+    public function scopeTitle(Builder $query, string $title): Builder | QueryBuilder
     {
         return $query->with('reviews')->where('title', 'like', "%{$title}%")->withCount('reviews')->orderBy('reviews_count', 'desc');
     }
@@ -91,6 +91,7 @@ class Book extends Model
     protected static function booted()
     {
         static::updated(fn(Book $book) => cache()->forget('book:' . $book->id));
-        static::deleted(fn(Review $book) => cache()->forget('book:' . $book->id));
+        static::deleted(fn(Book $book) => cache()->forget('book:' . $book->id));
+        static::created(fn(Book $book) => cache()->forget('book:' . $book->id));
     }
 }
