@@ -39,29 +39,38 @@ class Book extends Model
         return $query->with('reviews')->where('title', 'like', "%{$title}%")->withCount('reviews')->orderBy('reviews_count', 'desc');
     }
 
-
-    public function scopePopular(Builder $query, $from = null, $to = null): Builder | QueryBuilder
+    public function scopeWithPopular(Builder $query, $from = null, $to = null): Builder | QueryBuilder
     {
         return $query->withCount([
             'reviews' => fn(Builder $q) => $q->whereBetween('created_at', [now()->subMonth(), now()])->orderBy('reviews_count', 'desc')
         ]);
     }
 
-    public function scopeHighestRated(Builder $query): Builder | QueryBuilder
+    public function scopeWithHighestRated(Builder $query): Builder | QueryBuilder
     {
         return $query->withAvg([
             'reviews' => fn(Builder $q) => $q->whereBetween('created_at', [now()->subMonth(), now()])
         ], 'rating');
     }
 
+    public function scopePopular(Builder $query, $from = null, $to = null): Builder | QueryBuilder
+    {
+        return $query->withPopular()->orderBy('reviews_count', 'desc');
+    }
+
+    public function scopeHighestRated(Builder $query): Builder | QueryBuilder
+    {
+        return $query->WithHighestRated()->orderBy('reviews_avg_rating', 'desc');
+    }
+
     public function scopePopularLastMonth($query): Builder | QueryBuilder
     {
-        return $query->Popular()->whereBetween('created_at', [now()->subMonth(), now()])->HighestRated();
+        return $query->WithPopular()->whereBetween('created_at', [now()->subMonth(), now()])->HighestRated();
     }
 
     public function scopePopularLast6Months(Builder $query): Builder | QueryBuilder
     {
-        return $query->Popular()->whereBetween('created_at', [now()->subMonths(6), now()])
+        return $query->WithPopular()->whereBetween('created_at', [now()->subMonths(6), now()])
             ->HighestRated()->orderBy('reviews_count', 'desc');
     }
 
@@ -69,11 +78,19 @@ class Book extends Model
 
     public function scopeHighestRatedLastMonth(Builder $query): Builder | QueryBuilder
     {
-        return $query->HighestRated()->whereBetween('created_at', [now()->subMonth(), now()]);
+        return $query->WithHighestRated()->whereBetween('created_at', [now()->subMonth(), now()]);
     }
 
     public function scopeHighestRatedLast6Months(Builder $query): Builder | QueryBuilder
     {
-        return $query->HighestRated()->whereBetween('created_at', [now()->subMonths(6), now()])->orderBy('reviews_avg_rating', 'desc');
+        return $query->WithHighestRated()->whereBetween('created_at', [now()->subMonths(6), now()])->orderBy('reviews_avg_rating', 'desc');
+    }
+
+
+
+    protected static function booted()
+    {
+        static::updated(fn(Book $book) => cache()->forget('book:' . $book->id));
+        static::deleted(fn(Review $book) => cache()->forget('book:' . $book->id));
     }
 }
