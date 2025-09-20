@@ -14,10 +14,25 @@ class BookController extends Controller
     public function index(Request $request)
     {
         $title = $request->input('title');
-        // $books = Book::where('title', $title)->get();
-        $books = Book::when($title, function (QueryBuilder $query, $title) {
-            return Book::where('title', 'like', "%{$title}%");
-        })->paginate(8);
+        $filter = $request->input('filter', '');
+
+        $books = Book::when(
+            $title,
+            fn($query, $title) => $query->Title('title', 'like', "%{$title}%")->withCount('reviews')->orderBy('reviews_count', 'desc')
+        );
+
+        $books = match ($filter) {
+            'popular' => $books->Popular()->latest()->paginate(5),
+            'highest_rated' => $books->highestRated()->latest()->paginate(5),
+            'popular_last_month' =>  $books->popularLastMonth()->latest()->paginate(5),
+            'popular_last_6months' => $books->PopularLast6Months()->latest()->paginate(5),
+            'highest_rated_last_month' => $books->HighestRatedLastMonth()->latest()->paginate(5),
+            'highest_rated_last_6months' => $books->HighestRatedLast6Months()->latest()->paginate(5),
+            default =>  Book::latest()->paginate(5)
+        };
+
+
+
         return view('books.index', compact('books'));
     }
 
@@ -40,11 +55,9 @@ class BookController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Book $book)
     {
-        return view('books.show', [
-            'book' => Book::with('reviews')->findOrFail($id),
-        ]);
+        return view('books.show', compact('book'));
     }
 
     /**
